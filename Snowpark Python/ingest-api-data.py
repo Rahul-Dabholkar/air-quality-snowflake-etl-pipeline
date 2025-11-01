@@ -7,6 +7,9 @@ import pytz
 import shutil
 from datetime import datetime
 from snowflake.snowpark import Session
+# from python_dotenv import load_dotenv
+
+# load_dotenv()
 
 # 2. Logging Configuration
 logging.basicConfig(
