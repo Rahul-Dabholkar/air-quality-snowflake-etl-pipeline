@@ -31,6 +31,33 @@ The pipeline ingests **hourly Air Quality Index (AQI) data for Indian cities**, 
 
 ---
 
+## How to Get Your API Key (data.gov.in)
+
+To access the **Real-time Air Quality Index** dataset, you’ll need an API key from [data.gov.in](https://www.data.gov.in/resource/real-time-air-quality-index-various-locations#api).  
+
+### Step 1: Visit the Dataset Page  
+Go to the dataset:  
+👉 [Real-time Air Quality Index – data.gov.in](https://www.data.gov.in/resource/real-time-air-quality-index-various-locations#api)
+
+### Step 2: Register or Login  
+- If you don’t have an account, click **“Login / Register”** on the top-right.  
+- Fill in your name, email, organization, and password.  
+- Verify your email to activate your account.
+
+### Step 3: Request or Generate an API Key  
+- On the dataset page, scroll to the **API** section.  
+- You might see:  
+  > ‘Generate API Key’ button. Click to submit the request for it.
+- Once approved, it will display the key.
+
+### Step 4: Store the Key Securely  
+Do **not** hard-code the API key. Use environment variables or a `.env` file:  
+```bash
+API_KEY=your-api-key-here
+```
+
+---
+
 ## GitHub Actions
 
 The scheduled workflow **`GIT Action Pipeline/air_quality_hourly.yml`** automates data ingestion every hour at **:45**.  

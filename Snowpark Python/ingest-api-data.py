@@ -4,6 +4,7 @@ import json
 import logging
 import requests
 import pytz
+import shutil
 from datetime import datetime
 from snowflake.snowpark import Session
 from dotenv import load_dotenv
@@ -25,6 +26,12 @@ current_time_ist = datetime.now(ist_timezone)
 timestamp = current_time_ist.strftime('%Y_%m_%d_%H_%M_%S')
 today_string = current_time_ist.strftime('%Y_%m_%d')
 file_name = f'air_quality_data_{timestamp}.json'
+
+# Temporary folder
+TEMP_DIR = "tmp_aqi_data"
+os.makedirs(TEMP_DIR, exist_ok=True)
+file_path = os.path.join(TEMP_DIR, file_name)
+
 
 # 4. Snowflake Session Setup
 def snowpark_basic_auth() -> Session:
@@ -54,7 +61,7 @@ def snowpark_basic_auth() -> Session:
 
 # 5. API Data Extraction and Upload
 def get_air_quality_data(limit: int):
-    """Fetch data from API and upload JSON to Snowflake stage"""
+    """Fetch data from API, save temporarily, upload to Snowflake stage, then clean up."""
     api_key = os.getenv("API_KEY")
     if not api_key:
         logging.error("API_KEY not found in environment variables.")
@@ -80,19 +87,20 @@ def get_air_quality_data(limit: int):
 
         json_data = response.json()
 
-        # Save to local file
-        with open(file_name, "w") as json_file:
+        # Save to temp file
+        with open(file_path, "w") as json_file:
             json.dump(json_data, json_file, indent=2)
-        logging.info(f"JSON data saved locally as {file_name}")
+        logging.info(f"JSON data saved temporarily at {file_path}")
 
         # Upload to Snowflake stage
         stg_location = f"@aqi_project_db.stage_sch.raw_stg/india/{today_string}/"
         sf_session = snowpark_basic_auth()
 
         logging.info(f"Uploading {file_name} to stage: {stg_location}")
-        put_result = sf_session.file.put(file_name, stg_location, auto_compress=True, overwrite=True)
+        put_result = sf_session.file.put(file_path, stg_location, auto_compress=True, overwrite=True)
         logging.info(f"PUT result: {put_result}")
 
+        # Verify file upload
         list_query = f"LIST {stg_location}{file_name}.gz"
         result_lst = sf_session.sql(list_query).collect()
         logging.info(f"File successfully listed in stage: {result_lst}")
@@ -104,7 +112,16 @@ def get_air_quality_data(limit: int):
         logging.error(f"An error occurred during data ingestion: {e}")
         sys.exit(1)
 
-# 6. Main Execution
+    finally:
+        # Cleanup temp file and directory
+        try:
+            if os.path.exists(TEMP_DIR):
+                shutil.rmtree(TEMP_DIR)
+                logging.info(f"Temporary folder '{TEMP_DIR}' deleted after upload.")
+        except Exception as cleanup_error:
+            logging.warning(f"Failed to clean up temporary files: {cleanup_error}")
+
+
 if __name__ == "__main__":
     limit_value = int(os.getenv("API_LIMIT", 4000))
     get_air_quality_data(limit_value)
