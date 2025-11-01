@@ -29,18 +29,18 @@ jobs:
             pip install "snowflake-snowpark-python[pandas]"
           fi
 
-      # - name: Run data ingestion script
-      #   # run the script from its directory to handle the space in the folder name
-      #   working-directory: "Snowpark Python"
-      #   env:
-      #     API_LIMIT: ${{ secrets.API_LIMIT }}
-      #     SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-      #     SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
-      #     SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
-      #     SNOWFLAKE_REGION: ${{ secrets.SNOWFLAKE_REGION }}
-      #     SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
-      #     SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
-      #     SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-      #     SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
-      #   run: |
-      #     python ingest-api-data.py
+      - name: Run data ingestion script
+        # run the script from its directory to handle the space in the folder name
+        working-directory: "Snowpark Python"
+        env:
+          API_LIMIT: ${{ secrets.API_LIMIT }}
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
+          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+          SNOWFLAKE_REGION: ${{ secrets.SNOWFLAKE_REGION }}
+          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+          SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+        run: |
+          python ingest-api-data.py
