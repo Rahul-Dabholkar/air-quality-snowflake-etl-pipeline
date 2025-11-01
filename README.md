@@ -3,6 +3,8 @@
 This project demonstrates a complete **data engineering workflow** for building a scalable ETL pipeline using **Snowflake**, **Snowpark**, and **Streamlit**.  
 The pipeline ingests **hourly Air Quality Index (AQI) data for Indian cities**, stages and transforms it within Snowflake, and visualizes key environmental insights through interactive dashboards.  
 
+![diagram](https://github.com/Rahul-Dabholkar/air-quality-snowflake-etl-pipeline/blob/main/Diagrams/high-level-overview.png)
+
 ---
 
 ## Overview
