@@ -33,6 +33,7 @@ jobs:
         # run the script from its directory to handle the space in the folder name
         working-directory: "Snowpark Python"
         env:
+          API_KEY: ${{ secrets.API_KEY }}
           API_LIMIT: ${{ secrets.API_LIMIT }}
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
