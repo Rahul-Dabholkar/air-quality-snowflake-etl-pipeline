@@ -1,45 +1,42 @@
+# This is a basic workflow to help you get started with Actions
 name: india_air_quality_json
 
+# Controls when the workflow will run
+#on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+#   workflow_dispatch:
 on:
   schedule:
-    - cron: '45 * * * *'  # Runs every 45th minute
-  workflow_dispatch:       # Allow manual trigger too
+     - cron: '45 * * * *'  # Runs every 45th min
 
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  run-air-quality-ingestion:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout repo
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      # Step 2: Set up Python
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      # Step 3: Install dependencies
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt || pip install "snowflake-snowpark-python[pandas]" requests python-dotenv pytz
-
-      # Step 4: Run the ETL script
-      - name: Run Air Quality ETL
+      - uses: actions/checkout@v3
+      - run: |
+          home_dir=$(pwd)
+          echo $home_dir
+          echo -----------------------------------------------------------------------
+          pip install --upgrade pip    
+          echo -----------------------------------------------------------------------
+          pip install "snowflake-snowpark-python[pandas]"
+          echo -----------------------------------------------------------------------
+          ls -la
+          pwd
+          echo ----------------------------------------------------------------------- 
+          python $home_dir/ingest-api-data.py
         env:
-          # Inject all secrets securely here
+          API_LIMIT: ${{ secrets.API_LIMIT }}
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-          SNOWFLAKE_REGION: ${{ secrets.SNOWFLAKE_REGION }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
           SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
-          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
-          API_KEY: ${{ secrets.API_KEY }}
-          API_LIMIT: 4000
-        run: |
-          echo "Starting ETL job..."
-          python ingest-api-data.py
+          

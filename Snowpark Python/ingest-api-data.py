@@ -7,10 +7,6 @@ import pytz
 import shutil
 from datetime import datetime
 from snowflake.snowpark import Session
-from dotenv import load_dotenv
-
-# 1. Load environment variables from .env file
-load_dotenv()
 
 # 2. Logging Configuration
 logging.basicConfig(
@@ -38,14 +34,14 @@ def snowpark_basic_auth() -> Session:
     """Create Snowflake Snowpark session using credentials from .env"""
     try:
         connection_parameters = {
-            "ACCOUNT": os.getenv("SNOWFLAKE_ACCOUNT"),
-            "REGION": os.getenv("SNOWFLAKE_REGION"),
-            "USER": os.getenv("SNOWFLAKE_USER"),
-            "PASSWORD": os.getenv("SNOWFLAKE_PASSWORD"),
-            "ROLE": os.getenv("SNOWFLAKE_ROLE", "SYSADMIN"),
-            "DATABASE": os.getenv("SNOWFLAKE_DATABASE", "AQI_PROJECT_DB"),
-            "SCHEMA": os.getenv("SNOWFLAKE_SCHEMA", "STAGE_SCH"),
-            "WAREHOUSE": os.getenv("SNOWFLAKE_WAREHOUSE", "LOAD_WH")
+            "ACCOUNT": os.environ.get("SNOWFLAKE_ACCOUNT"),
+            "REGION": os.environ.get("SNOWFLAKE_REGION"),
+            "USER": os.environ.get("SNOWFLAKE_USER"),
+            "PASSWORD": os.environ.get("SNOWFLAKE_PASSWORD"),
+            "ROLE": os.environ.get("SNOWFLAKE_ROLE", "SYSADMIN"),
+            "DATABASE": os.environ.get("SNOWFLAKE_DATABASE", "AQI_PROJECT_DB"),
+            "SCHEMA": os.environ.get("SNOWFLAKE_SCHEMA", "STAGE_SCH"),
+            "WAREHOUSE": os.environ.get("SNOWFLAKE_WAREHOUSE", "LOAD_WH")
         }
 
         # Check all required environment variables
@@ -62,7 +58,7 @@ def snowpark_basic_auth() -> Session:
 # 5. API Data Extraction and Upload
 def get_air_quality_data(limit: int):
     """Fetch data from API, save temporarily, upload to Snowflake stage, then clean up."""
-    api_key = os.getenv("API_KEY")
+    api_key = os.environ.get("API_KEY")
     if not api_key:
         logging.error("API_KEY not found in environment variables.")
         sys.exit(1)
@@ -123,5 +119,5 @@ def get_air_quality_data(limit: int):
 
 
 if __name__ == "__main__":
-    limit_value = int(os.getenv("API_LIMIT", 4000))
+    limit_value = int(os.environ.get("API_LIMIT", 4000))
     get_air_quality_data(limit_value)
