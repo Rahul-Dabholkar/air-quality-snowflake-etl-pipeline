@@ -1,0 +1,5 @@
+python-dotenv
+requests
+snowflake-snowpark-python[pandas]
+pytz
+streamlit

@@ -1,0 +1,179 @@
+use role sysadmin;
+use schema aqi_project_db.consumption_sch;
+use warehouse adhoc_wh;
+
+-- ok we have completely cleaned data and now we have to just 
+-- understand the data and its features to create dimentional modelling schema/structure
+
+-- date dim
+select 
+    index_record_ts as measurement_time,
+    year(index_record_ts) as aqi_year,
+    month(index_record_ts) as aqi_month,
+    quarter(index_record_ts) as aqi_quarter,
+    day(index_record_ts) aqi_day,
+    hour(index_record_ts) aqi_hour,
+from 
+    aqi_project_db.clean_sch.clean_flatten_aqi_dt
+    group by 1,2,3,4,5,6;
+
+-- add a hash column to represent pk
+with step01_hr_data as (
+select 
+        index_record_ts as measurement_time,
+        year(index_record_ts) as aqi_year,
+        month(index_record_ts) as aqi_month,
+        quarter(index_record_ts) as aqi_quarter,
+        day(index_record_ts) aqi_day,
+        hour(index_record_ts)+1 aqi_hour,
+    from 
+        aqi_project_db.clean_sch.clean_flatten_aqi_dt
+        group by 1,2,3,4,5,6
+)
+select 
+    hash(measurement_time) as date_id,
+    *
+from step01_hr_data
+order by aqi_year,aqi_month,aqi_day,aqi_hour;
+
+-- create date-dim 
+create or replace dynamic table date_dim
+    target_lag='DOWNSTREAM'
+    warehouse=transform_wh
+as
+with step01_hr_data as (
+select 
+        index_record_ts as measurement_time,
+        year(index_record_ts) as aqi_year,
+        month(index_record_ts) as aqi_month,
+        quarter(index_record_ts) as aqi_quarter,
+        day(index_record_ts) aqi_day,
+        hour(index_record_ts)+1 aqi_hour,
+    from 
+        aqi_project_db.clean_sch.clean_flatten_aqi_dt
+        group by 1,2,3,4,5,6
+)
+select 
+    hash(measurement_time) as date_pk,
+    *
+from step01_hr_data
+order by aqi_year,aqi_month,aqi_day,aqi_hour;
+
+select * from date_dim;
+
+
+
+-- location dim
+select 
+    LATITUDE,
+    LONGITUDE,
+    COUNTRY,
+    STATE,
+    CITY,
+    STATION,
+from 
+    aqi_project_db.clean_sch.clean_flatten_aqi_dt
+    group by 1,2,3,4,5,6;
+
+-- add hash column to represent pk aggain same 
+with step01_unique_data as (
+select 
+    LATITUDE,
+    LONGITUDE,
+    COUNTRY,
+    STATE,
+    CITY,
+    STATION,
+from 
+    aqi_project_db.clean_sch.clean_flatten_aqi_dt
+    group by 1,2,3,4,5,6
+)
+select 
+    hash(LATITUDE,LONGITUDE) as location_pk,
+    *
+from step01_unique_data
+order by 
+    country, STATE, city, station;
+
+-- create location-dim
+create or replace dynamic table location_dim
+    target_lag='DOWNSTREAM'
+    warehouse=transform_wh
+as
+with step01_unique_data as (
+select 
+    LATITUDE,
+    LONGITUDE,
+    COUNTRY,
+    STATE,
+    CITY,
+    STATION,
+from 
+    aqi_project_db.clean_sch.clean_flatten_aqi_dt
+    group by 1,2,3,4,5,6
+)
+select 
+    hash(LATITUDE,LONGITUDE) as location_pk,
+    *
+from step01_unique_data
+order by 
+    country, STATE, city, station;
+
+
+-- fact table is just like wide table 
+-- but we will now use fk from date-dim and location-dim table
+-- hashin both keys of date and locaiton to create a new unique p-key for fact-table 
+select 
+    hash(index_record_ts,latitude,longitude) aqi_pk,
+    hash(index_record_ts) as date_fk,
+    hash(latitude,longitude) as location_fk,
+    pm10_avg,
+    pm25_avg,
+    so2_avg,
+    no2_avg,
+    nh3_avg,
+    co_avg,
+    o3_avg,
+    prominent_index(PM25_AVG,PM10_AVG,SO2_AVG,NO2_AVG,NH3_AVG,CO_AVG,O3_AVG)as prominent_pollutant,
+    case
+    when three_sub_index_criteria(PM25_AVG,PM10_AVG,SO2_AVG,NO2_AVG,NH3_AVG,CO_AVG,O3_AVG) > 2 
+    then greatest (PM25_AVG,PM10_AVG,SO2_AVG,NO2_AVG,NH3_AVG,CO_AVG,O3_AVG)
+    else 0
+    end
+as aqi
+from aqi_project_db.clean_sch.clean_flatten_aqi_dt
+where 
+    city = 'Chittoor' and 
+    station =  'Gangineni Cheruvu, Chittoor - APPCB' and 
+    INDEX_RECORD_TS = '2024-03-01 18:00:00.000';
+
+-- lets check data before inserting to table
+select * from date_dim where date_pk = 1635727249877756006;
+select * from location_dim where location_pk = 3830234801511030131;
+
+
+-- nice, we insert now. 
+create or replace dynamic table air_quality_fact
+    target_lag='30 min'
+    warehouse=transform_wh
+as
+select 
+    hash(index_record_ts,latitude,longitude) aqi_pk,
+    hash(index_record_ts) as date_fk,
+    hash(latitude,longitude) as location_fk,
+    pm10_avg,
+    pm25_avg,
+    so2_avg,
+    no2_avg,
+    nh3_avg,
+    co_avg,
+    o3_avg,
+    prominent_index(PM25_AVG,PM10_AVG,SO2_AVG,NO2_AVG,NH3_AVG,CO_AVG,O3_AVG)as prominent_pollutant,
+    case
+    when three_sub_index_criteria(PM25_AVG,PM10_AVG,SO2_AVG,NO2_AVG,NH3_AVG,CO_AVG,O3_AVG) > 2 then greatest (PM25_AVG,PM10_AVG,SO2_AVG,NO2_AVG,NH3_AVG,CO_AVG,O3_AVG)
+    else 0
+    end
+as aqi
+from aqi_project_db.clean_sch.clean_flatten_aqi_dt
+
+-- @todo for testing setting lag as 30min change this latertto downstream 
